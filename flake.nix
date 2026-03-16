@@ -12,7 +12,9 @@
         pkgs = nixpkgs.legacyPackages.${system};
         verInfo = builtins.fromJSON (builtins.readFile ./ver.json);
         
-        redis-sentinel = pkgs.clangStdenv.mkDerivation {
+        pkgsStatic = nixpkgs.legacyPackages.${system}.pkgsStatic;
+
+        redis-sentinel = pkgsStatic.clangStdenv.mkDerivation {
           pname = "redis-sentinel";
           version = verInfo.rev;
 
@@ -29,7 +31,7 @@
             which
           ];
 
-          buildInputs = with pkgs; [
+          buildInputs = with pkgsStatic; [
             openssl
             jemalloc
             lua
@@ -41,7 +43,7 @@
 
           makeFlags = [
             "PREFIX=$(out)"
-            "LDFLAGS=-Wl,-O1 -Wl,--as-needed -Wl,-z,relro -Wl,-z,now"
+            "LDFLAGS=-static -Wl,-O1 -Wl,--as-needed"
             "BUILD_TLS=yes"
             "OPTIMIZATION=-O3"
             "USE_SYSTEM_JEMALLOC=yes"
@@ -66,7 +68,7 @@
           '';
 
           meta = with pkgs.lib; {
-            description = "Redis Sentinel - High availability solution for Redis";
+            description = "Redis Sentinel - High availability solution for Redis (static build)";
             homepage = "https://redis.io/";
             license = licenses.bsd3;
             platforms = platforms.unix;
