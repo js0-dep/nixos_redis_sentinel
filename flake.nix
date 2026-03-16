@@ -10,11 +10,11 @@
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
+        pkgsMusl = pkgs.pkgsMusl;
+        opensslStatic = pkgsMusl.openssl.override { static = true; };
         verInfo = builtins.fromJSON (builtins.readFile ./ver.json);
-        
-        pkgsStatic = nixpkgs.legacyPackages.${system}.pkgsStatic;
 
-        redis-sentinel = pkgsStatic.clangStdenv.mkDerivation {
+        redis-sentinel = pkgsMusl.stdenv.mkDerivation {
           pname = "redis-sentinel";
           version = verInfo.rev;
 
@@ -25,30 +25,25 @@
             hash = verInfo.hash;
           };
 
-          nativeBuildInputs = with pkgs; [ 
+          nativeBuildInputs = with pkgsMusl; [
             pkg-config
-            tcl
-            which
           ];
 
-          buildInputs = with pkgsStatic; [
-            openssl
-            jemalloc
-            lua
+          buildInputs = [
+            opensslStatic
           ];
 
           env = {
-            NIX_CFLAGS_COMPILE = "-O3 -fomit-frame-pointer -pipe -fstack-protector-strong -D_FORTIFY_SOURCE=2";
+            NIX_CFLAGS_COMPILE = "-O3 -fomit-frame-pointer -pipe";
           };
 
           makeFlags = [
             "PREFIX=$(out)"
-            "LDFLAGS=-static -Wl,-O1 -Wl,--as-needed"
+            "LDFLAGS=-static"
             "BUILD_TLS=yes"
             "OPTIMIZATION=-O3"
-            "USE_SYSTEM_JEMALLOC=yes"
-            "USE_SYSTEM_LUA=yes"
             "USE_SYSTEMD=no"
+            "MALLOC=libc"
             "DEBUG="
             "REDIS_CFLAGS=-DREDIS_STATIC=''"
           ];
@@ -56,7 +51,7 @@
           buildPhase = ''
             runHook preBuild
             export MAKEFLAGS="-j$NIX_BUILD_CORES"
-            make redis-sentinel $makeFlags CFLAGS="$NIX_CFLAGS_COMPILE"
+            make $makeFlags CFLAGS="$NIX_CFLAGS_COMPILE"
             runHook postBuild
           '';
 
