@@ -51,7 +51,8 @@
           buildPhase = ''
             runHook preBuild
             export MAKEFLAGS="-j$NIX_BUILD_CORES"
-            make $makeFlags CFLAGS="$NIX_CFLAGS_COMPILE"
+            make -C deps $makeFlags CFLAGS="$NIX_CFLAGS_COMPILE"
+            make -C src redis-sentinel $makeFlags CFLAGS="$NIX_CFLAGS_COMPILE"
             runHook postBuild
           '';
 
